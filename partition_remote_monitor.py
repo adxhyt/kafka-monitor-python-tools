@@ -2,21 +2,27 @@
 import urllib2
 import json
 import paramiko
+import ConfigParser
 
-# http service url for kafka pusher
-urls = [ url1, url2 ]
+def config_init():
+    cf = ConfigParser.ConfigParser()
+    cf.read("partition_remote_monitor.cfg")
 
-# path for replication-offset-checkpoint log
-fname = replication-offset-checkpoint-path
+    #secs = cf.sections()
+    #print 'sections:', secs, type(secs)
+    #opts = cf.options("db")
+    #print 'options:', opts, type(opts)
+    #kvs = cf.items("db")
+    #print 'db:', kvs
 
-# remote host
-serverHost = remote_host_ip
-# remote port ssh prot
-serverPort = ssh_port
-# user group ex. "work"
-userName = user_group
-# rsa location
-keyFile = rsa-location-path
+    ssh_host = cf.get("ssh", "ssh_host")
+    ssh_port = cf.getint("ssh", "ssh_port")
+    ssh_user = cf.get("ssh", "ssh_user")
+    ssh_key_path = cf.get("ssh", "ssh_key_path")
+
+    log_dir=cf.get("logdir", "log_dir")
+    urls=cf.get("url", "url_list")
+    return ssh_host, ssh_port, ssh_user, ssh_key_path, log_dir, urls
 
 def urls2array(urls):
     arr = []
@@ -77,13 +83,21 @@ def read_data_ssh(serverHost, serverPort, userName, keyFile, fname):
     channel.close()
     return ret
 
+cfg = config_init()
+ssh_host = cfg[0]
+ssh_port = cfg[1] 
+ssh_user = cfg[2] 
+ssh_key_path = cfg[3]
+log_dir = cfg[4]
+urls = cfg[5]
+
 remote_array = urls2array(urls)
 result = array2dict(remote_array)
 pusherData = {}
 for k,v in result.iteritems():
    pusherData[k] = data_handle(v)
 
-data = read_data_ssh(serverHost, serverPort, userName, keyFile, fname)
+data = read_data_ssh(ssh_host, ssh_port, ssh_user, ssh_key_path, log_dir)
 for k, v in data.iteritems():
     data[k] = data_handle(v)
 
